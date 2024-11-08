@@ -1,147 +1,53 @@
-import sqlite3
+import argparse
 import pandas as pd
+import sqlite3
 
-con = sqlite3.connect("movie_recommender.db")
-# instantiate a cursor object
-cursor = con.cursor()
+# Set up argument parser
+parser = argparse.ArgumentParser(description="Movie Recommender System Data Loader")
+parser.add_argument("db_file", help="Name of the database file")  # Path to `movies.db` file
+parser.add_argument("csv_file", help="Name of the csv file")  # Path to `imdb_top_1000.csv`
+args = parser.parse_args()
 
-def extract_columns(df1, df2, column1, column2):
-  df1_2 = df1[column1]
-  df2_2 = df2[column2]
-  extracted_df = pd.concat([df1_2, df2_2])
+# Extract arguments
+db_file = args.db_file
+csv_file = args.csv_file
 
-  return extracted_df
+# Connect to the SQLite database
+conn = sqlite3.connect(db_file)
+cursor = conn.cursor()
 
+print(f"Connected to database: {db_file}")
 
-## delete existing table and its contents
-# cur.execute('DROP TABLE "movie"')
+# Load data from CSV into DataFrame
+df = pd.read_csv(csv_file)
 
-# create relation schema for movie table with 3 attributes
-# Create Movies table
-cursor.execute('''
-    CREATE TABLE IF NOT EXISTS Movies (
-        MovieID INTEGER PRIMARY KEY,
-        OriginalLanguage TEXT,
-        OriginalTitle TEXT,
-        EnglishTitle TEXT,
-        Budget BIGINT,
-        Revenue BIGINT,
-        Homepage TEXT,
-        Runtime INTEGER,
-        ReleaseDate DATE,
-        Genres TEXT,
-        CastID TEXT,
-        ProductionCompanies TEXT,
-        ProductionCountries TEXT,
-        SpokenLanguages TEXT
-    )
-''')
+# Insert data into 'movie' table
+for index, row in df.iterrows():
+    try:
+        cursor.execute('''
+            INSERT OR IGNORE INTO movie (
+                mov_id, mov_orig_title, mov_eng_title, released_year, certificate,
+                runtime, imdb_rating, overview, meta_score, director, gross
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            index + 1,  # Assigning mov_id as index + 1 if it doesn't exist in the CSV
+            row['Series_Title'],  # Assuming CSV contains this column
+            row['Series_Title'],  # Using the same value for English title for simplicity
+            row['Released_Year'],
+            row['Certificate'] if pd.notna(row['Certificate']) else None,
+            int(row['Runtime'].replace(' min', '')) if pd.notna(row['Runtime']) else None,
+            row['IMDB_Rating'] if pd.notna(row['IMDB_Rating']) else None,
+            row['Overview'] if pd.notna(row['Overview']) else None,
+            int(row['Meta_score']) if pd.notna(row['Meta_score']) else None,
+            row['Director'] if pd.notna(row['Director']) else None,
+            int(row['Gross'].replace(',', '')) if pd.notna(row['Gross']) else None
+        ))
+    except Exception as e:
+        print(f"Error inserting row {index}: {e}")
 
-# Create Persons table
-cursor.execute('''
-    CREATE TABLE IF NOT EXISTS Persons (
-        CastID TEXT PRIMARY KEY,
-        MovieID INTEGER,
-        Name TEXT,
-        Gender INTEGER, 
-        CharacterName TEXT,
-        FOREIGN KEY (MovieID) REFERENCES Movies (MovieID)
-    )
-''')
-
-# Create Ratings table
-cursor.execute('''
-    CREATE TABLE IF NOT EXISTS Ratings (
-        UserID INTEGER,
-        MovieID INTEGER,
-        Rating REAL,
-        RatingDate DATE,
-        PRIMARY KEY (UserID, MovieID),
-        FOREIGN KEY (MovieID) REFERENCES Movies (MovieID)
-    )
-''')
-
-# Create Casts (plays in) table
-cursor.execute('''
-    CREATE TABLE IF NOT EXISTS Casts (
-        FOREIGN KEY (PersonID) REFERENCES Persons (PersonID)
-        FOREIGN KEY (MovieID) REFERENCES Movies (MovieID)
-    )
-''')
-
-# Commit table creation
-cursor.commit()
-
-# Load CSV files into pandas DataFrames
-movies_df = pd.read_csv('Movies.csv')
-persons_df = pd.read_csv('Persons.csv')
-ratings_df = pd.read_csv('Ratings.csv')
-
-# Insert data into Movies table
-for index, row in movies_df.iterrows():
-    cursor.execute('''
-        INSERT OR IGNORE INTO Movies (MovieID, OriginalLanguage, OriginalTitle, EnglishTitle, Budget, Revenue, Homepage, Runtime, ReleaseDate, Genres, CastID, ProductionCompanies, ProductionCountries, SpokenLanguages)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (
-        row['MovieID'],
-        row['OriginalLanguage'],
-        row['OriginalTitle'],
-        row['EnglishTitle'],
-        row['Budget'] if pd.notna(row['Budget']) else None,
-        row['Revenue'] if pd.notna(row['Revenue']) else None,
-        row['Homepage'] if pd.notna(row['Homepage']) else None,
-        row['Runtime'] if pd.notna(row['Runtime']) else None,
-        row['ReleaseDate'],
-        row['Genres'],
-        row['CastID'],
-        row['ProductionCompanies'],
-        row['ProductionCountries'],
-        row['SpokenLanguages']
-    ))
-
-# Insert data into Persons table
-for index, row in persons_df.iterrows():
-    cursor.execute('''
-        INSERT OR IGNORE INTO Persons (CastID, MovieID, Name, Gender, CharacterName)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (
-        row['CastID'],
-        row['MovieID'],
-        row['Name'],
-        row['Gender'] if pd.notna(row['Gender']) else None,
-        row['Character']
-    ))
-
-# Insert data into Ratings table
-for index, row in ratings_df.iterrows():
-    cursor.execute('''
-        INSERT OR IGNORE INTO Ratings (UserID, MovieID, Rating, RatingDate)
-        VALUES (?, ?, ?, ?)
-    ''', (
-        row['UserID'],
-        row['MovieID'],
-        row['Rating'],
-        row['Date']
-    ))
-
-extracted_data = extract_columns(movies_df, persons_df, "MovieID", "PersonsID")
-unique_casts = extracted_data["MovieID", "PersonsID"].unique()
-
-# Insert data into Casts table
-for index, row in unique_casts.iterrows():
-    cursor.execute('''
-        INSERT OR IGNORE INTO Ratings (MovieID, PersonsID)
-        VALUES (?, ?)
-    ''', (
-        row['MoviesID'],
-        row['PersonsID']
-    ))
-
-# Commit data insertion
-cursor.commit()
-
-# Close the connection
+# Commit and close the connection
+conn.commit()
 cursor.close()
+conn.close()
 
-# ALWAYS close connection to database!
-con.close()
+print("Data loading completed successfully.")
