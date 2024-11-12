@@ -3,21 +3,50 @@
 -- Overview: The following SQL script is used to integrate new data from IMBD's top 1000 movies dataset 
 -- into our current data set from Assignment 2 
 
+-- Acknowledgments:
+-- This project was developed collaboratively by Anthony Roca, Dario Santiago Lopez, and ChatGPT-4o.
+-- Special thanks to ChatGPT for assisting in refining the schema and ensuring data consistency throughout.
+
 -- BEFORE YOU RUN THESE SCRIPTS CLEAR movies.db IF NEEDED
--- Step 1: Create 'movie' table to store basic movie details
+-- Step 1: Create 'movie' table to store basic movie details. If you are using movies.db from assignment 3 then 
+-- just alter table movie and add the additional columns to the table
 CREATE TABLE movie (
     mov_id INT PRIMARY KEY,
     mov_orig_title VARCHAR(256) NOT NULL,
     mov_eng_title VARCHAR(256) NOT NULL,
     released_year INT, -- this and the following are part of imdb schema
-    certificate VARCHAR(64),
-    runtime INT,
-    imdb_rating FLOAT CHECK (imdb_rating >= 0 AND imdb_rating <= 10),
-    overview TEXT,
-    meta_score INT CHECK (meta_score >= 0 AND meta_score <= 100),
-    director VARCHAR(256),
-    gross BIGINT CHECK (gross >= 0)
+    certificate VARCHAR(64), -- may have to alter table
+    runtime INT, -- may have to alter table
+    imdb_rating FLOAT CHECK (imdb_rating >= 0 AND imdb_rating <= 10), -- may have to alter table
+    overview TEXT, -- may have to alter table
+    meta_score INT CHECK (meta_score >= 0 AND meta_score <= 100), -- may have to alter table
+    director VARCHAR(256), -- may have to alter table
+    gross BIGINT CHECK (gross >= 0) -- may have to alter table
 );
+-- If you have to alter the table, uncomment the following queries 
+-- ALTER TABLE movie
+-- ADD COLUMN released_year INT;
+
+-- ALTER TABLE movie
+-- ADD COLUMN certificate VARCHAR(64);
+
+-- ALTER TABLE movie
+-- ADD COLUMN runtime INT;
+
+-- ALTER TABLE movie
+-- ADD COLUMN imdb_rating FLOAT CHECK (imdb_rating >= 0 AND imdb_rating <= 10);
+
+-- ALTER TABLE movie
+-- ADD COLUMN overview TEXT;
+
+-- ALTER TABLE movie
+-- ADD COLUMN meta_score INT CHECK (meta_score >= 0 AND meta_score <= 100);
+
+-- ALTER TABLE movie
+-- ADD COLUMN director VARCHAR(256);
+
+-- ALTER TABLE movie
+-- ADD COLUMN gross BIGINT CHECK (gross >= 0);
 
 -- Step 2: Create 'genre' table to store genre details
 CREATE TABLE genre (

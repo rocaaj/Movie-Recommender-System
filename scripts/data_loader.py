@@ -1,11 +1,29 @@
+"""
+Author: Dario Santiago Lopez, Anthony Roca, ChatGPT 4o with Canvas
+Date: November 7, 2024
+
+Project: Movie Recommender System Data Loader
+
+Description:
+    This script loads data from a CSV file containing movie information into an SQLite database.
+    It populates tables such as movie, genre, movie_genre, star, movie_star, and rating with
+    data from the CSV, ensuring that relationships between movies, genres, and stars are properly
+    established in the database.
+
+Acknowledgments:
+    This project was developed collaboratively by Dario Santiago Lopez, Anthony Roca, and ChatGPT 4o with Canvas.
+    Special thanks to ChatGPT for assistance in developing and refining the data loading logic.
+"""
+
 import argparse
 import pandas as pd
 import sqlite3
+import random
 
 # Set up argument parser
 parser = argparse.ArgumentParser(description="Movie Recommender System Data Loader")
-parser.add_argument("db_file", help="Path to the SQLite database file")  # Path to `movies.db` file
-parser.add_argument("csv_file", help="Path to the CSV file to load data from")  # Path to `imdb_top_1000.csv`
+parser.add_argument("db_file", help="Name of the database file")  # Path to `movies.db` file
+parser.add_argument("csv_file", help="Name of the csv file")  # Path to `imdb_top_1000.csv`
 args = parser.parse_args()
 
 # Extract arguments
@@ -30,9 +48,9 @@ for index, row in df.iterrows():
                 runtime, imdb_rating, overview, meta_score, director, gross
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
-            index + 1,  # Assigning mov_id as index + 1
-            row['Series_Title'],
-            row['Series_Title'],
+            index + 1,  # Assigning mov_id as index + 1 if it doesn't exist in the CSV
+            row['Series_Title'],  # Assuming CSV contains this column
+            row['Series_Title'],  # Using the same value for English title for simplicity
             row['Released_Year'],
             row['Certificate'] if pd.notna(row['Certificate']) else None,
             int(row['Runtime'].replace(' min', '')) if pd.notna(row['Runtime']) else None,
@@ -112,6 +130,8 @@ for index, row in df.iterrows():
                     ''', (mov_id, star_id))
                 except Exception as e:
                     print(f"Error linking movie {mov_id} to star '{star_name}': {e}")
+
+
 
 # Commit and close the connection
 conn.commit()
