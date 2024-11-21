@@ -22,6 +22,9 @@ import sqlite3
 import random
 from datetime import datetime 
 
+# To run the script, type into your terminal line: python movie_loader_db.py name_of_db.db name_of_csv.csv
+# For example: python .\movie_loader_db.py movies.db imdb_top_1000.csv 
+
 # Set up argument parser
 parser = argparse.ArgumentParser(description="Movie Recommender System Data Loader")
 parser.add_argument("db_file", help="Name of the database file")  # Path to `movies.db` file
