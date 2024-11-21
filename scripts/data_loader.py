@@ -1,6 +1,7 @@
 """
 Author: Dario Santiago Lopez, Anthony Roca, ChatGPT 4o with Canvas
-Date: November 7, 2024
+Date: November 7, 2024 
+Updated: November 18, 2024
 
 Project: Movie Recommender System Data Loader
 
@@ -19,12 +20,15 @@ import argparse
 import pandas as pd
 import sqlite3
 import random
+from datetime import datetime 
 
 # Set up argument parser
 parser = argparse.ArgumentParser(description="Movie Recommender System Data Loader")
 parser.add_argument("db_file", help="Name of the database file")  # Path to `movies.db` file
 parser.add_argument("csv_file", help="Name of the csv file")  # Path to `imdb_top_1000.csv`
 args = parser.parse_args()
+
+print("\nArgs received from command line") 
 
 # Extract arguments
 db_file = args.db_file
@@ -62,6 +66,7 @@ for index, row in df.iterrows():
         ))
     except Exception as e:
         print(f"Error inserting row {index}: {e}")
+        #print(f"Row data: {row}")
 
 # Insert data into 'genre' table
 unique_genres = set()
@@ -69,7 +74,7 @@ for genres in df['Genre']:
     genre_list = genres.split(', ') if pd.notna(genres) else []
     unique_genres.update(genre_list)
 
-for gen_id, genre_name in enumerate(unique_genres, start=1):
+for gen_id, genre_name in enumerate(unique_genres, start = 1):
     try:
         cursor.execute('''
             INSERT OR IGNORE INTO genre (gen_id, gen_name)
@@ -103,7 +108,7 @@ for i in range(1, 5):
     if column_name in df.columns:
         stars_set.update(df[column_name].dropna().unique())
 
-for star_id, star_name in enumerate(stars_set, start=1):
+for star_id, star_name in enumerate(stars_set, start = 1):
     try:
         cursor.execute('''
             INSERT OR IGNORE INTO star (star_id, star_name)
@@ -131,7 +136,23 @@ for index, row in df.iterrows():
                 except Exception as e:
                     print(f"Error linking movie {mov_id} to star '{star_name}': {e}")
 
+# Insert data into 'rating' table
+# Assigning a default user_id and rat_id for simplicity
+default_user_id = 1
+for index, row in df.iterrows():
+    mov_id = index + 1
+    rat_id = index + 1  # Generating rat_id based on the index
+    rating_date = datetime.now().strftime('%Y-%m-%d')
+    rat_score = random.uniform(0.5, 5.0)  # Assigning a random rating between 0.5 and 5.0
 
+    try:
+        cursor.execute('''
+            INSERT OR IGNORE INTO rating (
+                user_id, mov_id, rat_score, rating_date, rat_id
+            ) VALUES (?, ?, ?, ?, ?)
+        ''', (default_user_id, mov_id, rat_score, rating_date, rat_id))
+    except Exception as e:
+        print(f"Error inserting rating for movie {mov_id}: {e}")
 
 # Commit and close the connection
 conn.commit()
