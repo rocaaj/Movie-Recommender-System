@@ -5,7 +5,7 @@ Date: November 7, 2024
 Project: Gender Prediction for Movie Database
 
 Description:
-    This script predicts the gender of actors using the Gender Guesser library. It extracts first names of actors from
+    This script predicts the gender of actors using the gender_guesser library. It extracts first names of actors from
     the SQLite database, predicts their gender, and stores these predictions in the database. Additionally,
     it evaluates the accuracy of these predictions.
 
@@ -18,13 +18,16 @@ import argparse
 import sqlite3
 import gender_guesser.detector as gender
 
+# Create gender detector
+gender_detector = gender.Detector()
+
 def is_genderize_pred_empty(db_path):
-    """Check if the genderize_pred column in the star table is completely NULL."""
+    """Check if the genderize_pred column in the gender_prediction table is completely NULL."""
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute("""
         SELECT COUNT(*) 
-        FROM gender_prediction 
+        FROM gender_prediction
         WHERE genderize_pred IS NOT NULL
     """)
     count = cursor.fetchone()[0]
@@ -42,23 +45,26 @@ def extract_first_names(db_path):
     """)
     stars = cursor.fetchall()
     conn.close()
+    # Convert list of tuples to a list of names
     return [name[0] for name in stars]
 
 def predict_gender(first_names):
-    """Predict gender using the Gender Guesser library."""
-    gender_detector = gender.Detector()
-    gender_map = {'female': 1, 'male': 2, 'unknown': 3, 'andy': 3}
-
+    """Predict gender using the gender_guesser library."""
+    gender_map = {
+        'female': 1, 
+        'male': 2, 
+        'unknown': 3, 
+        'andy': 3,  # Ambiguous names will be treated as unknown
+        None: 3
+    }
     predictions = []
-    for name in first_names:
+    for first_name in first_names:
         try:
-            prediction = gender_detector.get_gender(name)
-            # 'andy' is used for ambiguous names, treating it as 'unknown'
-            gender_value = gender_map.get(prediction, 3)  # Default to 'unknown' if not recognized
-            predictions.append((name, gender_value))
+            prediction = gender_detector.get_gender(first_name)
+            gender_value = gender_map.get(prediction, 3)
+            predictions.append((first_name, gender_value))
         except Exception as e:
-            print(f"Error predicting gender for {name}: {e}")
-
+            print(f"Error predicting gender for {first_name}: {e}")
     return predictions
 
 def store_predictions(db_path, predictions):
@@ -83,6 +89,7 @@ def evaluate_accuracy(db_path):
             COUNT(*) AS total,
             SUM(CASE WHEN genderize_pred = gender THEN 1 ELSE 0 END) AS correct
         FROM gender_prediction
+        WHERE gender IS NOT NULL
     """)
     total, correct = cursor.fetchone()
     conn.close()
