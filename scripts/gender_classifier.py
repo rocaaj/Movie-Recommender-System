@@ -1,6 +1,6 @@
 """
 Author: Dario Santiago Lopez, Anthony Roca, ChatGPT 4o with Canvas
-Date: November 7, 2024
+Date: November 22, 2024
 
 Project: Custom Gender Predictor for Movie Database
 
